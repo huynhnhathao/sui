@@ -294,6 +294,7 @@ pub enum EndOfEpochTransactionKind {
     AuthenticatorStateExpire(AuthenticatorStateExpire),
     RandomnessStateCreate,
     DenyListStateCreate,
+    BridgeCreate,
 }
 
 impl EndOfEpochTransactionKind {
@@ -341,6 +342,10 @@ impl EndOfEpochTransactionKind {
         Self::DenyListStateCreate
     }
 
+    pub fn new_bridge_create() -> Self {
+        Self::BridgeCreate
+    }
+
     fn input_objects(&self) -> Vec<InputObjectKind> {
         match self {
             Self::ChangeEpoch(_) => {
@@ -360,6 +365,7 @@ impl EndOfEpochTransactionKind {
             }
             Self::RandomnessStateCreate => vec![],
             Self::DenyListStateCreate => vec![],
+            Self::BridgeCreate => vec![],
         }
     }
 
@@ -374,6 +380,7 @@ impl EndOfEpochTransactionKind {
             Self::AuthenticatorStateCreate => Either::Right(iter::empty()),
             Self::RandomnessStateCreate => Either::Right(iter::empty()),
             Self::DenyListStateCreate => Either::Right(iter::empty()),
+            Self::BridgeCreate => Either::Right(iter::empty()),
         }
     }
 
@@ -391,6 +398,10 @@ impl EndOfEpochTransactionKind {
             Self::DenyListStateCreate => {
                 // Transaction should have been rejected earlier (or never formed).
                 assert!(config.enable_coin_deny_list());
+            }
+            Self::BridgeCreate => {
+                // Transaction should have been rejected earlier (or never formed).
+                assert!(config.bridge());
             }
         }
         Ok(())
@@ -471,6 +482,13 @@ impl VersionedProtocolMessage for TransactionKind {
                                 if !protocol_config.enable_coin_deny_list() {
                                     return Err(SuiError::UnsupportedFeatureError {
                                         error: "coin deny list not enabled".to_string(),
+                                    });
+                                }
+                            }
+                            EndOfEpochTransactionKind::BridgeCreate => {
+                                if !protocol_config.bridge() {
+                                    return Err(SuiError::UnsupportedFeatureError {
+                                        error: "bridge not enabled".to_string(),
                                     });
                                 }
                             }

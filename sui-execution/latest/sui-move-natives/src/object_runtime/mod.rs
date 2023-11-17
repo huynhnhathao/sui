@@ -253,6 +253,7 @@ impl<'a> ObjectRuntime<'a> {
             SUI_AUTHENTICATOR_STATE_OBJECT_ID,
             SUI_RANDOMNESS_STATE_OBJECT_ID,
             SUI_DENY_LIST_OBJECT_ID,
+            SUI_BRIDGE_OBJECT_ID,
         ]
         .contains(&id);
         let transfer_result = if self.state.new_ids.contains(&id) {
