@@ -4337,6 +4337,10 @@ impl AuthorityState {
         &self,
         epoch_store: &Arc<AuthorityPerEpochStore>,
     ) -> Option<EndOfEpochTransactionKind> {
+        if !epoch_store.protocol_config().bridge() {
+            info!("bridge not enabled");
+            return None;
+        }
         if epoch_store.bridge_exists() {
             return None;
         }
