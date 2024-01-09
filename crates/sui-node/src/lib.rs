@@ -197,7 +197,6 @@ use simulator::*;
 pub use simulator::set_jwk_injector;
 use sui_core::consensus_handler::ConsensusHandlerInitializer;
 use sui_core::mysticeti_adapter::LazyMysticetiClient;
-use sui_types::bridge::get_bridge_obj_initial_shared_version;
 
 pub struct SuiNode {
     config: NodeConfig,

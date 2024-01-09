@@ -8,7 +8,6 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{fs, path::Path};
 use sui_types::authenticator_state::{get_authenticator_state, AuthenticatorStateInner};
 use sui_types::base_types::{ObjectID, SuiAddress};
-use sui_types::bridge::get_bridge_obj_initial_shared_version;
 use sui_types::clock::Clock;
 use sui_types::committee::CommitteeWithNetworkMetadata;
 use sui_types::crypto::DefaultHash;
