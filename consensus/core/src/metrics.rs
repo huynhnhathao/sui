@@ -37,12 +37,17 @@ pub(crate) fn test_metrics() -> Arc<Metrics> {
 pub(crate) struct NodeMetrics {
     pub uptime: Histogram,
     pub quorum_receive_latency: Histogram,
-    #[allow(unused)]
-    pub committed_leaders_total: IntCounterVec,
     pub core_lock_enqueued: IntCounter,
     pub core_lock_dequeued: IntCounter,
     pub leader_timeout_total: IntCounter,
     pub threshold_clock_round: IntGauge,
+
+    // Commit Metrics
+    #[allow(unused)]
+    pub committed_leaders_total: IntCounterVec,
+    pub blocks_per_commit_count: Histogram,
+    pub sub_dags_per_commit_count: Histogram,
+    pub block_commit_latency: Histogram,
 }
 
 impl NodeMetrics {
@@ -59,13 +64,6 @@ impl NodeMetrics {
                 "quorum_receive_latency",
                 "The time it took to receive a new round quorum of blocks",
                 registry
-            )
-            .unwrap(),
-            committed_leaders_total: register_int_counter_vec_with_registry!(
-                "committed_leaders_total",
-                "Total number of (direct or indirect) committed leaders per authority",
-                &["authority", "commit_type"],
-                registry,
             )
             .unwrap(),
             core_lock_enqueued: register_int_counter_with_registry!(
@@ -91,6 +89,33 @@ impl NodeMetrics {
                 "The current threshold clock round. We only advance to a new round when a quorum of parents have been synced.",
                 registry,
             ).unwrap(),
+
+            // Commit Metrics
+            committed_leaders_total: register_int_counter_vec_with_registry!(
+                "committed_leaders_total",
+                "Total number of (direct or indirect) committed leaders per authority",
+                &["authority", "commit_type"],
+                registry,
+            )
+            .unwrap(),
+            block_commit_latency: register_histogram_with_registry!(
+                "block_commit_latency",
+                "The time taken between block creation and block commit.",
+                registry,
+            )
+            .unwrap(),
+            blocks_per_commit_count: register_histogram_with_registry!(
+                "blocks_per_commit_count",
+                "The number of blocks per commit.",
+                registry,
+            )
+            .unwrap(),
+            sub_dags_per_commit_count: register_histogram_with_registry!(
+                "sub_dags_per_commit_count",
+                "The number of subdags per commit.",
+                registry,
+            )
+            .unwrap(),
         }
     }
 }
