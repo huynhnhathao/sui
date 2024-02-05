@@ -20,7 +20,7 @@ module bridge::bridge {
     use bridge::committee::{Self, BridgeCommittee};
     use bridge::message::{Self, BridgeMessage, BridgeMessageKey};
     use bridge::message_types;
-    use bridge::treasury::{Self, BridgeTreasury, token_id};
+    use bridge::treasury::{Self, BridgeTreasury};
 
     struct Bridge has key {
         id: UID,
@@ -69,8 +69,6 @@ module bridge::bridge {
     const ENotSystemAddress: u64 = 5;
     const EUnexpectedSeqNum: u64 = 6;
     const EWrongInnerVersion: u64 = 7;
-    const EAlreadyClaimed: u64 = 8;
-    const ERecordAlreadyExists: u64 = 9;
     const EBridgeUnavailable: u64 = 10;
     const EUnexpectedOperation: u64 = 11;
     const EInvalidBridgeRoute: u64 = 12;
