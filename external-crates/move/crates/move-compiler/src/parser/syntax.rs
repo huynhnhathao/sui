@@ -827,6 +827,31 @@ fn parse_attributes(context: &mut Context) -> Result<Vec<Attributes>, Box<Diagno
 // Fields and Bindings
 //**************************************************************************************************
 
+// Parse an optional ellipis token. Consumes and returns the location of the token if present, and
+// returns `Ok(None)` if not present.
+//      Ellipsis = "..."?
+fn parse_ellipsis_opt(context: &mut Context) -> Result<Option<Loc>, Box<Diagnostic>> {
+    consume_optional_token_with_loc(context.tokens, Tok::PeriodPeriod)
+}
+
+// Parse an optional "mut" modifier token. Consumes and returns the location of the token if present
+// and returns None otherwise.
+//     MutOpt = "mut"?
+fn parse_mut_opt(context: &mut Context) -> Result<Option<Loc>, Box<Diagnostic>> {
+    if context.tokens.peek() == Tok::Mut {
+        let start_loc = context.tokens.start_loc();
+        context.tokens.advance()?;
+        let end_loc = context.tokens.previous_end_loc();
+        Ok(Some(make_loc(
+            context.tokens.file_hash(),
+            start_loc,
+            end_loc,
+        )))
+    } else {
+        Ok(None)
+    }
+}
+
 // Parse a field name optionally followed by a colon and an expression argument:
 //      ExpField = <Field> <":" <Exp>>?
 fn parse_exp_field(context: &mut Context) -> Result<(Field, Exp), Box<Diagnostic>> {
@@ -846,10 +871,11 @@ fn parse_exp_field(context: &mut Context) -> Result<(Field, Exp), Box<Diagnostic
 //      BindField =
 //          <Field> <":" <Bind>>?
 //          | "mut" <Field>
+//          | <Ellipsis>
 //
 // If the binding is not specified, the default is to use a variable
 // with the same name as the field.
-fn parse_bind_field(context: &mut Context) -> Result<(Field, Bind), Box<Diagnostic>> {
+fn parse_bind_field(context: &mut Context) -> Result<Ellipsis<(Field, Bind)>, Box<Diagnostic>> {
     if context.tokens.peek() == Tok::Mut {
         let start_loc = context.tokens.start_loc();
         context.tokens.advance()?;
@@ -857,15 +883,18 @@ fn parse_bind_field(context: &mut Context) -> Result<(Field, Bind), Box<Diagnost
         let mut_loc = make_loc(context.tokens.file_hash(), start_loc, end_loc);
         let f = parse_field(context)?;
         let arg = sp(f.loc(), Bind_::Var(Some(mut_loc), Var(f.0)));
-        Ok((f, arg))
+        Ok(Ellipsis::Binder((f, arg)))
     } else {
+        if let Some(loc) = parse_ellipsis_opt(context)? {
+            return Ok(Ellipsis::Ellipsis(loc));
+        }
         let f = parse_field(context)?;
         let arg = if match_token(context.tokens, Tok::Colon)? {
             parse_bind(context)?
         } else {
             sp(f.loc(), Bind_::Var(None, Var(f.0)))
         };
-        Ok((f, arg))
+        Ok(Ellipsis::Binder((f, arg)))
     }
 }
 
@@ -873,7 +902,7 @@ fn parse_bind_field(context: &mut Context) -> Result<(Field, Bind), Box<Diagnost
 //      Bind =
 //          "mut"? <Var>
 //          | <NameAccessChain> <OptionalTypeArgs> "{" Comma<BindField> "}"
-//          | <NameAccessChain> <OptionalTypeArgs> "(" Comma<Bind> ")"
+//          | <NameAccessChain> <OptionalTypeArgs> "(" Comma<BindOrEllipsis> ")"
 fn parse_bind(context: &mut Context) -> Result<Bind, Box<Diagnostic>> {
     let start_loc = context.tokens.start_loc();
     if matches!(
@@ -885,13 +914,7 @@ fn parse_bind(context: &mut Context) -> Result<Bind, Box<Diagnostic>> {
             next_tok,
             Tok::LBrace | Tok::Less | Tok::ColonColon | Tok::LParen
         ) {
-            let mut_ = if context.tokens.peek() == Tok::Mut {
-                context.tokens.advance()?;
-                let end_loc = context.tokens.previous_end_loc();
-                Some(make_loc(context.tokens.file_hash(), start_loc, end_loc))
-            } else {
-                None
-            };
+            let mut_ = parse_mut_opt(context)?;
             let v = Bind_::Var(mut_, parse_var(context)?);
             let end_loc = context.tokens.previous_end_loc();
             return Ok(spanned(context.tokens.file_hash(), start_loc, end_loc, v));
@@ -913,7 +936,7 @@ fn parse_bind(context: &mut Context) -> Result<Bind, Box<Diagnostic>> {
             context,
             Tok::LParen,
             Tok::RParen,
-            parse_bind,
+            parse_bind_or_ellipsis,
             "a field binding",
         )?;
         FieldBindings::Positional(args)
@@ -935,6 +958,16 @@ fn parse_bind(context: &mut Context) -> Result<Bind, Box<Diagnostic>> {
         end_loc,
         unpack,
     ))
+}
+
+// Parse an inner field binding -- either a normal binding or an ellipsis:
+//      EllipsisOrBind = <Bind> | <Ellipsis>
+fn parse_bind_or_ellipsis(context: &mut Context) -> Result<Ellipsis<Bind>, Box<Diagnostic>> {
+    if let Some(loc) = parse_ellipsis_opt(context)? {
+        return Ok(Ellipsis::Ellipsis(loc));
+    }
+    let b = parse_bind(context)?;
+    Ok(Ellipsis::Binder(b))
 }
 
 // Parse a list of bindings, which can be zero, one, or more bindings:
@@ -1635,6 +1668,8 @@ fn parse_match_arm(context: &mut Context) -> Result<MatchArm, Box<Diagnostic>> {
 }
 
 fn parse_match_pattern(context: &mut Context) -> Result<MatchPattern, Box<Diagnostic>> {
+    const INVALID_MUT_ERROR_MSG: &str =
+        "Can't use 'mut' as a modifier outside of variable bindings";
     const WILDCARD_AT_ERROR_MSG: &str = "Can't use '_' as a binder in an '@' pattern";
     const INVALID_PAT_ERROR_MSG: &str = "Invalid pattern";
 
@@ -1655,9 +1690,23 @@ fn parse_match_pattern(context: &mut Context) -> Result<MatchPattern, Box<Diagno
                     MatchPattern_::Wildcard,
                 ))
             }
-            Tok::Identifier => ok_with_loc!(context, {
+            Tok::Mut | Tok::Identifier => ok_with_loc!(context, {
+                let mut_ = parse_mut_opt(context)?;
                 let name_access_chain = parse_name_access_chain(context, || "a pattern entry")?;
                 let ty_args = parse_optional_type_args(context)?;
+
+                match mut_ {
+                    Some(loc)
+                        if !matches!(name_access_chain.value, NameAccessChain_::One(_))
+                            || ty_args.is_some() =>
+                    {
+                        return Err(Box::new(diag!(
+                            Syntax::UnexpectedToken,
+                            (loc, INVALID_MUT_ERROR_MSG)
+                        )));
+                    }
+                    _ => (),
+                }
 
                 match context.tokens.peek() {
                     Tok::LParen => {
@@ -1667,7 +1716,7 @@ fn parse_match_pattern(context: &mut Context) -> Result<MatchPattern, Box<Diagno
                                 context,
                                 Tok::LParen,
                                 Tok::RParen,
-                                parse_match_pattern,
+                                parse_positional_field_pattern,
                                 "a pattern",
                             )?
                         );
@@ -1686,7 +1735,7 @@ fn parse_match_pattern(context: &mut Context) -> Result<MatchPattern, Box<Diagno
                         );
                         FieldConstructor(name_access_chain, ty_args, sp(loc, patterns))
                     }
-                    _ => Name(name_access_chain, ty_args),
+                    _ => Name(mut_, name_access_chain, ty_args),
                 }
             }),
             _ => {
@@ -1702,19 +1751,42 @@ fn parse_match_pattern(context: &mut Context) -> Result<MatchPattern, Box<Diagno
         }
     }
 
+    fn parse_positional_field_pattern(
+        context: &mut Context,
+    ) -> Result<Ellipsis<MatchPattern>, Box<Diagnostic>> {
+        if let Some(loc) = parse_ellipsis_opt(context)? {
+            return Ok(Ellipsis::Ellipsis(loc));
+        }
+
+        parse_match_pattern(context).map(Ellipsis::Binder)
+    }
+
     fn parse_field_pattern(
         context: &mut Context,
-    ) -> Result<(Field, MatchPattern), Box<Diagnostic>> {
+    ) -> Result<Ellipsis<(Field, MatchPattern)>, Box<Diagnostic>> {
+        const INVALID_MUT_ERROR_MSG: &str = "'mut' modifier can only be used on variable bindings";
+
+        if let Some(loc) = parse_ellipsis_opt(context)? {
+            return Ok(Ellipsis::Ellipsis(loc));
+        }
+
+        let mut_ = parse_mut_opt(context)?;
         let field = parse_field(context)?;
         let pattern = if match_token(context.tokens, Tok::Colon)? {
+            if let Some(loc) = mut_ {
+                return Err(Box::new(diag!(
+                    Syntax::UnexpectedToken,
+                    (loc, INVALID_MUT_ERROR_MSG)
+                )));
+            }
             parse_match_pattern(context)?
         } else {
             sp(
                 field.loc(),
-                Name(sp(field.loc(), NameAccessChain_::One(field.0)), None),
+                Name(mut_, sp(field.loc(), NameAccessChain_::One(field.0)), None),
             )
         };
-        Ok((field, pattern))
+        Ok(Ellipsis::Binder((field, pattern)))
     }
 
     fn parse_at_pattern(context: &mut Context) -> Result<MatchPattern, Box<Diagnostic>> {
@@ -2676,14 +2748,7 @@ fn parse_function_decl(
 // Parse a function parameter:
 //      Parameter = "mut"? <Var> ":" <Type>
 fn parse_parameter(context: &mut Context) -> Result<(Mutability, Var, Type), Box<Diagnostic>> {
-    let mut_ = if context.tokens.peek() == Tok::Mut {
-        let start_loc = context.tokens.start_loc();
-        context.tokens.advance()?;
-        let end_loc = context.tokens.previous_end_loc();
-        Some(make_loc(context.tokens.file_hash(), start_loc, end_loc))
-    } else {
-        None
-    };
+    let mut_ = parse_mut_opt(context)?;
     let v = parse_var(context)?;
     consume_token(context.tokens, Tok::Colon)?;
     let t = parse_type(context)?;

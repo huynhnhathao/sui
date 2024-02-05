@@ -329,12 +329,6 @@ mod recolor_struct {
             self.vars.insert(*var);
         }
 
-        pub fn add_vars(&mut self, vars: &[Var]) {
-            for v in vars {
-                self.vars.insert(*v);
-            }
-        }
-
         pub fn add_block_label(&mut self, label: BlockLabel) {
             self.block_labels.insert(label);
         }
@@ -602,13 +596,24 @@ fn recolor_exp_dotted(ctx: &mut Recolor, sp!(_, ed_): &mut N::ExpDotted) {
 }
 
 fn recolor_match_arm(ctx: &mut Recolor, sp!(_, arm): &mut N::MatchArm) {
-    let N::MatchArm_ { pattern, binders, guard, guard_binders, rhs_binders: _, rhs } = arm;
-    ctx.add_vars(&binders);
-    for (_, _, v) in guard_binders {
-        ctx.add_var(v);
+    let N::MatchArm_ {
+        pattern,
+        binders,
+        guard,
+        guard_binders,
+        rhs_binders: _,
+        rhs,
+    } = arm;
+    for (_mut, var) in binders {
+        ctx.add_var(var)
+    }
+    for (_, _, var) in guard_binders {
+        ctx.add_var(var);
     }
     recolor_match_pattern(ctx, pattern);
-    guard.as_mut().map(|guard| recolor_exp(ctx, &mut *guard));
+    if let Some(guard) = guard.as_mut() {
+        recolor_exp(ctx, &mut *guard);
+    }
     recolor_exp(ctx, rhs);
 }
 
@@ -618,7 +623,7 @@ fn recolor_match_pattern(ctx: &mut Recolor, sp!(_, pat): &mut N::MatchPattern) {
             for (_, _, (_, pat)) in fields {
                 recolor_match_pattern(ctx, pat);
             }
-        },
+        }
         N::MatchPattern_::Binder(x) => recolor_var(ctx, x),
         N::MatchPattern_::Literal(_) => (),
         N::MatchPattern_::Wildcard => (),
@@ -629,7 +634,7 @@ fn recolor_match_pattern(ctx: &mut Recolor, sp!(_, pat): &mut N::MatchPattern) {
         N::MatchPattern_::At(x, inner) => {
             recolor_var(ctx, x);
             recolor_match_pattern(ctx, inner);
-        },
+        }
         N::MatchPattern_::ErrorPat => (),
     }
 }
@@ -1017,9 +1022,18 @@ fn exp_dotted(context: &mut Context, sp!(_, ed_): &mut N::ExpDotted) {
 }
 
 fn match_arm(context: &mut Context, sp!(_, arm): &mut N::MatchArm) {
-    let N::MatchArm_ { pattern, binders: _, guard, guard_binders: _, rhs_binders: _, rhs } = arm;
+    let N::MatchArm_ {
+        pattern,
+        binders: _,
+        guard,
+        guard_binders: _,
+        rhs_binders: _,
+        rhs,
+    } = arm;
     match_pattern(context, pattern);
-    guard.as_mut().map(|guard| exp(context, guard));
+    if let Some(guard) = guard.as_mut() {
+        exp(context, guard);
+    }
     exp(context, rhs)
 }
 
@@ -1054,13 +1068,13 @@ fn match_pattern(context: &mut Context, sp!(_, pattern): &mut N::MatchPattern) {
         N::MatchPattern_::Or(lhs, rhs) => {
             match_pattern(context, lhs);
             match_pattern(context, rhs);
-        },
+        }
         N::MatchPattern_::At(x, inner) => {
             match_pattern(context, inner);
             if !ident_okay(context, x) {
                 *pattern = N::MatchPattern_::ErrorPat;
             }
-        },
+        }
         N::MatchPattern_::ErrorPat => (),
     }
 }

@@ -3277,6 +3277,20 @@ fn exp_dotted(context: &mut Context, pdotted: Box<P::Exp>) -> Option<Box<E::ExpD
 // Match and Patterns
 //**************************************************************************************************
 
+fn check_ellipsis_usage(context: &mut Context, ellipsis_locs: &[Loc]) {
+    if ellipsis_locs.len() > 1 {
+        let mut diag = diag!(
+            NameResolution::InvalidPattern,
+            (ellipsis_locs[0], "Multiple ellipsis patterns"),
+        );
+        for loc in ellipsis_locs.iter().skip(1) {
+            diag.add_secondary_label((*loc, "Ellipsis pattern used again here"));
+        }
+        diag.add_note("An ellipsis pattern can only appear once in a constructor's pattern.");
+        context.env().add_diag(diag);
+    }
+}
+
 fn match_arm(context: &mut Context, sp!(loc, arm_): P::MatchArm) -> E::MatchArm {
     let P::MatchArm_ {
         pattern,
@@ -3349,14 +3363,26 @@ fn match_pattern(context: &mut Context, sp!(loc, pat_): P::MatchPattern) -> E::M
             match head_ctor_name {
                 Some(head_ctor_name @ sp!(_, EM::Variant(_, _))) => {
                     let ploc = pats.loc;
-                    let pats = pats
-                        .value
-                        .into_iter()
-                        .map(|pat| match_pattern(context, pat))
-                        .collect();
+                    let mut out_pats = vec![];
+                    let mut ellipsis_locs = vec![];
+                    for pat in pats.value.into_iter() {
+                        match pat {
+                            P::Ellipsis::Binder(p) => {
+                                out_pats.push(E::Ellipsis::Binder(match_pattern(context, p)));
+                            }
+                            P::Ellipsis::Ellipsis(loc) if ellipsis_locs.is_empty() => {
+                                out_pats.push(E::Ellipsis::Ellipsis(loc));
+                                ellipsis_locs.push(loc);
+                            }
+                            P::Ellipsis::Ellipsis(loc) => {
+                                ellipsis_locs.push(loc);
+                            }
+                        }
+                    }
+                    check_ellipsis_usage(context, &ellipsis_locs);
                     sp(
                         loc,
-                        EP::PositionalConstructor(head_ctor_name, tys, sp(ploc, pats)),
+                        EP::PositionalConstructor(head_ctor_name, tys, sp(ploc, out_pats)),
                     )
                 }
                 _ => error_pattern!(),
@@ -3369,27 +3395,40 @@ fn match_pattern(context: &mut Context, sp!(loc, pat_): P::MatchPattern) -> E::M
             let tys = optional_types(context, pts_opt);
             match head_ctor_name {
                 Some(head_ctor_name @ sp!(_, EM::Variant(_, _))) => {
-                    let fields = fields
-                        .value
-                        .into_iter()
-                        .map(|(field, pat)| (field, match_pattern(context, pat)))
-                        .collect();
-                    let fields = named_fields(context, loc, "pattern", "sub-pattern", fields);
-                    sp(loc, EP::FieldConstructor(head_ctor_name, tys, fields))
+                    let mut ellipsis_locs = vec![];
+                    let mut stripped_fields = vec![];
+                    for field in fields.value.into_iter() {
+                        match field {
+                            P::Ellipsis::Binder((field, pat)) => {
+                                stripped_fields.push((field, match_pattern(context, pat)));
+                            }
+                            P::Ellipsis::Ellipsis(eloc) => {
+                                ellipsis_locs.push(eloc);
+                            }
+                        }
+                    }
+                    let fields =
+                        named_fields(context, loc, "pattern", "sub-pattern", stripped_fields);
+                    check_ellipsis_usage(context, &ellipsis_locs);
+                    let ellipsis = ellipsis_locs.first().copied();
+                    sp(
+                        loc,
+                        EP::FieldConstructor(head_ctor_name, tys, fields, ellipsis),
+                    )
                 }
                 _ => error_pattern!(),
             }
         }
-        PP::Name(name_chain, pts_opt) => {
+        PP::Name(mut_, name_chain, pts_opt) => {
             let head_ctor_name = context
                 .name_access_chain_to_module_access(Access::Variant, name_chain)
                 .and_then(|name| head_ctor_okay(context, name, true));
             let tys = optional_types(context, pts_opt);
             match head_ctor_name {
                 Some(sp!(loc, EM::Name(name))) => {
-                    let is_syntax_identifier = v.is_syntax_identifier();
-                    sp(loc, EP::Binder(Var(name)))
-                },
+                    let var = Var(name);
+                    sp(loc, EP::Binder(mut_, var))
+                }
                 Some(head_ctor_name @ sp!(_, EM::Variant(_, _))) => {
                     sp(loc, EP::HeadConstructor(head_ctor_name, tys))
                 }
@@ -3416,17 +3455,17 @@ fn match_pattern(context: &mut Context, sp!(loc, pat_): P::MatchPattern) -> E::M
     }
 }
 
-fn pattern_binders(context: &mut Context, pattern: &E::MatchPattern) -> Vec<Var> {
+fn pattern_binders(context: &mut Context, pattern: &E::MatchPattern) -> Vec<(Mutability, Var)> {
     use E::MatchPattern_ as EP;
 
-    fn report_duplicate(context: &mut Context, var: Var, locs: &Vec<Loc>) {
+    fn report_duplicate(context: &mut Context, var: Var, locs: &Vec<(Mutability, Loc)>) {
         assert!(locs.len() > 1, "ICE pattern duplicate detection error");
-        let first_loc = locs.first().unwrap();
+        let (_, first_loc) = locs.first().unwrap();
         let mut diag = diag!(
             NameResolution::InvalidPattern,
             (*first_loc, format!("binder '{}' is defined here", var))
         );
-        for loc in locs.iter().skip(1) {
+        for (_, loc) in locs.iter().skip(1) {
             diag.add_secondary_label((*loc, "and repeated here"));
         }
         diag.add_note("A pattern variable must be unique unless it appears on different sides of an or-pattern.");
@@ -3451,7 +3490,28 @@ fn pattern_binders(context: &mut Context, pattern: &E::MatchPattern) -> Vec<Var>
         context.env().add_diag(diag);
     }
 
-    type Bindings = BTreeMap<Var, Vec<Loc>>;
+    fn report_mismatched_or_mutability(
+        context: &mut Context,
+        mutable_loc: Loc,
+        immutable_loc: Loc,
+        var: &Var,
+        posn: OrPosn,
+    ) {
+        let (primary_side, secondary_side) = match posn {
+            OrPosn::Left => ("left", "right"),
+            OrPosn::Right => ("right", "left"),
+        };
+        let primary_msg = format!("{} or-pattern binds variable {} mutably", primary_side, var);
+        let secondary_msg = format!("{} or-pattern binds it immutably", secondary_side);
+        let mut diag = diag!(NameResolution::InvalidPattern, (mutable_loc, primary_msg));
+        diag.add_secondary_label((immutable_loc, secondary_msg));
+        diag.add_note(
+            "Both sides of an or-pattern must bind the same variables with the same mutability.",
+        );
+        context.env().add_diag(diag);
+    }
+
+    type Bindings = BTreeMap<Var, Vec<(Mutability, Loc)>>;
 
     fn report_duplicates_and_combine(
         context: &mut Context,
@@ -3481,23 +3541,25 @@ fn pattern_binders(context: &mut Context, pattern: &E::MatchPattern) -> Vec<Var>
 
     fn check_duplicates(context: &mut Context, sp!(ploc, pattern): &E::MatchPattern) -> Bindings {
         match pattern {
-            EP::Binder(var) | EP::At(var, _) => {
+            EP::Binder(mut_, var) => [(*var, vec![(*mut_, *ploc)])].into_iter().collect(),
+            EP::At(var, inner) => {
                 let mut bindings: Bindings = BTreeMap::new();
-                bindings.entry(*var).or_default().push(*ploc);
-                if let EP::At(_, inner) = pattern {
-                    let new_bindings = check_duplicates(context, inner);
-                    bindings = report_duplicates_and_combine(context, vec![bindings, new_bindings]);
-                }
+                bindings.entry(*var).or_default().push((None, *ploc));
+                let new_bindings = check_duplicates(context, inner);
+                bindings = report_duplicates_and_combine(context, vec![bindings, new_bindings]);
                 bindings
             }
             EP::PositionalConstructor(_, _, sp!(_, patterns)) => {
                 let bindings = patterns
                     .iter()
-                    .map(|pat| check_duplicates(context, pat))
+                    .filter_map(|pat| match pat {
+                        E::Ellipsis::Binder(p) => Some(check_duplicates(context, p)),
+                        E::Ellipsis::Ellipsis(_) => None,
+                    })
                     .collect();
                 report_duplicates_and_combine(context, bindings)
             }
-            EP::FieldConstructor(_, _, fields) => {
+            EP::FieldConstructor(_, _, fields, _) => {
                 let mut bindings = vec![];
                 for (_, _, (_, pat)) in fields {
                     bindings.push(check_duplicates(context, pat));
@@ -3508,9 +3570,49 @@ fn pattern_binders(context: &mut Context, pattern: &E::MatchPattern) -> Vec<Var>
                 let mut left_bindings = check_duplicates(context, left);
                 let mut right_bindings = check_duplicates(context, right);
 
-                for key in left_bindings.keys() {
+                for (key, mut_and_locs) in left_bindings.iter_mut() {
                     if !right_bindings.contains_key(key) {
                         report_mismatched_or(context, OrPosn::Left, key, right.loc);
+                    }
+
+                    let lhs_mutability = mut_and_locs.first().and_then(|(m, _)| *m);
+                    let rhs_mutability = right_bindings
+                        .get(key)
+                        .and_then(|mut_and_locs| mut_and_locs.first().and_then(|(m, _)| *m));
+                    match (lhs_mutability, rhs_mutability) {
+                        // LHS variable mutable, RHS variable immutable
+                        (Some(lhs_mutability), None) => {
+                            report_mismatched_or_mutability(
+                                context,
+                                lhs_mutability,
+                                right.loc,
+                                key,
+                                OrPosn::Left,
+                            );
+                            // Mutabilities are mismatched so update them to all be mutable to
+                            // avoid further errors further down the line.
+                            if let Some(mut_and_locs) = right_bindings.get_mut(key) {
+                                for m in mut_and_locs.iter_mut().filter(|(x, _)| x.is_none()) {
+                                    m.0 = Some(lhs_mutability);
+                                }
+                            }
+                        }
+                        (None, Some(rhs_mutability)) => {
+                            // RHS variable mutable, LHS variable immutable
+                            report_mismatched_or_mutability(
+                                context,
+                                rhs_mutability,
+                                key.loc(),
+                                key,
+                                OrPosn::Right,
+                            );
+                            // Mutabilities are mismatched so update them to all be mutable to
+                            // avoid further errors further down the line.
+                            for m in mut_and_locs.iter_mut().filter(|(x, _)| x.is_none()) {
+                                m.0 = Some(rhs_mutability);
+                            }
+                        }
+                        _ => (),
                     }
                 }
 
@@ -3535,8 +3637,10 @@ fn pattern_binders(context: &mut Context, pattern: &E::MatchPattern) -> Vec<Var>
         }
     }
 
-    let bindings = check_duplicates(context, pattern);
-    bindings.keys().cloned().collect::<Vec<_>>()
+    check_duplicates(context, pattern)
+        .into_iter()
+        .map(|(var, vs)| (vs.first().and_then(|x| x.0), var))
+        .collect::<Vec<_>>()
 }
 
 //**************************************************************************************************
@@ -3689,20 +3793,35 @@ fn bind(context: &mut Context, sp!(loc, pb_): P::Bind) -> Option<E::LValue> {
             let tys_opt = optional_types(context, ptys_opt);
             let fields = match pfields {
                 FieldBindings::Named(named_bindings) => {
-                    let vfields: Option<Vec<(Field, E::LValue)>> = named_bindings
-                        .into_iter()
-                        .map(|(f, pb)| Some((f, bind(context, pb)?)))
-                        .collect();
+                    let mut vfields = vec![];
+                    let mut ellipsis_locs = vec![];
+                    for e in named_bindings.into_iter() {
+                        match e {
+                            P::Ellipsis::Binder((f, pb)) => vfields.push((f, bind(context, pb)?)),
+                            P::Ellipsis::Ellipsis(loc) => ellipsis_locs.push(loc),
+                        }
+                    }
+                    check_ellipsis_usage(context, &ellipsis_locs);
                     let fields =
-                        named_fields(context, loc, "deconstruction binding", "binding", vfields?);
-                    E::FieldBindings::Named(fields)
+                        named_fields(context, loc, "deconstruction binding", "binding", vfields);
+                    E::FieldBindings::Named(fields, ellipsis_locs.first().copied())
                 }
                 FieldBindings::Positional(positional_bindings) => {
-                    let fields: Option<Vec<E::LValue>> = positional_bindings
-                        .into_iter()
-                        .map(|b| bind(context, b))
-                        .collect();
-                    E::FieldBindings::Positional(fields?)
+                    let mut fields = vec![];
+                    let mut ellipsis_locs = vec![];
+                    for e in positional_bindings.into_iter() {
+                        match e {
+                            P::Ellipsis::Binder(pb) => {
+                                fields.push(E::Ellipsis::Binder(bind(context, pb)?))
+                            }
+                            P::Ellipsis::Ellipsis(loc) => {
+                                ellipsis_locs.push(loc);
+                                fields.push(E::Ellipsis::Ellipsis(loc))
+                            }
+                        }
+                    }
+                    check_ellipsis_usage(context, &ellipsis_locs);
+                    E::FieldBindings::Positional(fields)
                 }
             };
             EL::Unpack(tn, tys_opt, fields)
@@ -3813,7 +3932,7 @@ fn assign(context: &mut Context, sp!(loc, e_): P::Exp) -> Option<E::LValue> {
             let efields = assign_unpack_fields(context, loc, pfields)?;
             Some(sp(
                 loc,
-                EL::Unpack(en, tys_opt, E::FieldBindings::Named(efields)),
+                EL::Unpack(en, tys_opt, E::FieldBindings::Named(efields, None)),
             ))
         }
         PE::Call(pn, None, ptys_opt, sp!(_, exprs)) => {
@@ -3823,7 +3942,10 @@ fn assign(context: &mut Context, sp!(loc, e_): P::Exp) -> Option<E::LValue> {
                 .check_feature(FeatureGate::PositionalFields, pkg, loc);
             let en = context.name_access_chain_to_module_access(Access::ApplyNamed, pn)?;
             let tys_opt = optional_types(context, ptys_opt);
-            let pfields: Option<_> = exprs.into_iter().map(|e| assign(context, e)).collect();
+            let pfields: Option<_> = exprs
+                .into_iter()
+                .map(|e| assign(context, e).map(E::Ellipsis::Binder))
+                .collect();
             Some(sp(
                 loc,
                 EL::Unpack(en, tys_opt, E::FieldBindings::Positional(pfields?)),
