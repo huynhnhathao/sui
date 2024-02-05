@@ -1,6 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+use parking_lot::RwLock;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -14,6 +15,7 @@ use crate::block_verifier::BlockVerifier;
 use crate::context::Context;
 use crate::core::{Core, CoreSignals};
 use crate::core_thread::CoreThreadDispatcher;
+use crate::dag_state::DagState;
 use crate::leader_timeout::{LeaderTimeoutTask, LeaderTimeoutTaskHandle};
 use crate::metrics::initialise_metrics;
 use crate::storage::rocksdb_store::RocksDBStore;
@@ -52,13 +54,15 @@ impl AuthorityNode {
         // Create the transactions client and the transactions consumer
         let (client, tx_receiver) = TransactionsClient::new(context.clone());
         let tx_consumer = TransactionsConsumer::new(tx_receiver, context.clone(), None);
-
-        // Construct Core
-        let (core_signals, signals_receivers) = CoreSignals::new();
-        let block_manager = BlockManager::new();
         let store = Arc::new(RocksDBStore::new(
             context.parameters.db_path.as_path().to_str().unwrap(),
         ));
+
+        let dag_state = Arc::new(RwLock::new(DagState::new(context.clone(), store.clone())));
+
+        // Construct Core
+        let (core_signals, signals_receivers) = CoreSignals::new();
+        let block_manager = BlockManager::new(context.clone(), dag_state);
         let core = Core::new(
             context.clone(),
             tx_consumer,

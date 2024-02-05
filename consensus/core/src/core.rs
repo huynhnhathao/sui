@@ -108,7 +108,10 @@ impl Core {
         let _scope = monitored_scope("Core::add_blocks");
 
         // Try to accept them via the block manager
-        let accepted_blocks = self.block_manager.add_blocks(blocks);
+        let accepted_blocks = self
+            .block_manager
+            .accept_blocks(blocks)
+            .expect("Fatal error");
 
         // Advance the threshold clock. If advanced to a new round then send a signal that a new quorum has been received.
         if let Some(new_round) = self
@@ -210,7 +213,9 @@ impl Core {
 
             // TODO: use the DagState instead to accept the block directly. Will address on follow up PR when I'll inject
             // the DagState. Now that's necessary to ensure that blocks aren't double processed.
-            self.block_manager.add_blocks(vec![verified_block.clone()]);
+            let _ = self
+                .block_manager
+                .accept_blocks(vec![verified_block.clone()]);
 
             self.last_proposed_block = verified_block.clone();
 
@@ -370,9 +375,11 @@ impl CoreSignalsReceivers {
 mod test {
     use super::*;
     use crate::block::TestBlock;
+    use crate::dag_state::DagState;
     use crate::storage::mem_store::MemStore;
     use crate::transactions_client::TransactionsClient;
     use consensus_config::{Committee, Stake};
+    use parking_lot::RwLock;
     use std::collections::BTreeSet;
     use std::time::Duration;
     use sui_protocol_config::ProtocolConfig;
@@ -382,10 +389,11 @@ mod test {
     async fn test_core_recover_from_store_for_full_round() {
         let (context, mut key_pairs) = Context::new_for_test(4);
         let context = Arc::new(context);
-        let block_manager = BlockManager::new();
+        let store = Arc::new(MemStore::new());
+        let dag_state = Arc::new(RwLock::new(DagState::new(context.clone(), store.clone())));
+        let block_manager = BlockManager::new(context.clone(), dag_state);
         let (_transactions_client, tx_receiver) = TransactionsClient::new(context.clone());
         let transactions_consumer = TransactionsConsumer::new(tx_receiver, context.clone(), None);
-        let store = Arc::new(MemStore::new());
 
         // Create test blocks for all the authorities for 4 rounds and populate them in store
         let (_, mut last_round_blocks) = Block::genesis(context.clone());
@@ -441,10 +449,11 @@ mod test {
     async fn test_core_recover_from_store_for_partial_round() {
         let (context, mut key_pairs) = Context::new_for_test(4);
         let context = Arc::new(context);
-        let block_manager = BlockManager::new();
+        let store = Arc::new(MemStore::new());
+        let dag_state = Arc::new(RwLock::new(DagState::new(context.clone(), store.clone())));
+        let block_manager = BlockManager::new(context.clone(), dag_state);
         let (_transactions_client, tx_receiver) = TransactionsClient::new(context.clone());
         let transactions_consumer = TransactionsConsumer::new(tx_receiver, context.clone(), None);
-        let store = Arc::new(MemStore::new());
 
         // Create test blocks for all authorities except our's (index = 0) .
         let (_, mut last_round_blocks) = Block::genesis(context.clone());
@@ -515,11 +524,13 @@ mod test {
 
         let (context, mut key_pairs) = Context::new_for_test(4);
         let context = Arc::new(context);
-        let block_manager = BlockManager::new();
+        let store = Arc::new(MemStore::new());
+        let dag_state = Arc::new(RwLock::new(DagState::new(context.clone(), store.clone())));
+
+        let block_manager = BlockManager::new(context.clone(), dag_state);
         let (transactions_client, tx_receiver) = TransactionsClient::new(context.clone());
         let transactions_consumer = TransactionsConsumer::new(tx_receiver, context.clone(), None);
         let (signals, _signal_receivers) = CoreSignals::new();
-        let store = Arc::new(MemStore::new());
 
         let mut core = Core::new(
             context.clone(),
@@ -588,11 +599,13 @@ mod test {
     async fn test_core_propose_once_receiving_a_quorum() {
         let (context, mut key_pairs) = Context::new_for_test(4);
         let context = Arc::new(context);
-        let block_manager = BlockManager::new();
+        let store = Arc::new(MemStore::new());
+        let dag_state = Arc::new(RwLock::new(DagState::new(context.clone(), store.clone())));
+
+        let block_manager = BlockManager::new(context.clone(), dag_state);
         let (_transactions_client, tx_receiver) = TransactionsClient::new(context.clone());
         let transactions_consumer = TransactionsConsumer::new(tx_receiver, context.clone(), None);
         let (signals, _signal_receivers) = CoreSignals::new();
-        let store = Arc::new(MemStore::new());
 
         let mut core = Core::new(
             context.clone(),
@@ -796,13 +809,14 @@ mod test {
                 .with_authority_index(AuthorityIndex::new_for_test(index as u32));
 
             let context = Arc::new(context);
+            let store = Arc::new(MemStore::new());
+            let dag_state = Arc::new(RwLock::new(DagState::new(context.clone(), store.clone())));
 
-            let block_manager = BlockManager::new();
+            let block_manager = BlockManager::new(context.clone(), dag_state);
             let (_transactions_client, tx_receiver) = TransactionsClient::new(context.clone());
             let transactions_consumer =
                 TransactionsConsumer::new(tx_receiver, context.clone(), None);
             let (signals, signal_receivers) = CoreSignals::new();
-            let store = Arc::new(MemStore::new());
 
             let block_signer = signers.remove(index).0;
 
