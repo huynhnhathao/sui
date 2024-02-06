@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707254913212,
+  "lastUpdate": 1707255580539,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -179,6 +179,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 358607,
             "range": "± 21994",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tmn@mystenlabs.com",
+            "name": "Todd Nowacki",
+            "username": "tnowacki"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5303610174e2c3e3f3e67b758815d9c829e23bd1",
+          "message": "[move 2024] Add macro functions (#15928)\n\n## Description \r\n\r\n- Added support for macros in 2024.alpha\r\n- Minor reworks to labels and blocks\r\n\r\nTODO:\r\n\r\n- [x] Decide on lambda type syntax \r\n- [x] Decide on lambda type implicit () \r\n- [x] Subst tparams inside macro body\r\n- [x] Fix lvalues for lambdas (nesting and type annots)\r\n\r\n## Test Plan \r\n\r\nHow did you test the new or updated feature?\r\n\r\n---\r\nIf your changes are not user-facing and do not break anything, you can\r\nskip the following section. Otherwise, please briefly describe what has\r\nchanged under the Release Notes section.\r\n\r\n### Type of Change (Check all that apply)\r\n\r\n- [ ] protocol change\r\n- [X] user-visible impact\r\n- [X] breaking change for a client SDKs\r\n- [ ] breaking change for FNs (FN binary must upgrade)\r\n- [ ] breaking change for validators or node operators (must upgrade\r\nbinaries)\r\n- [ ] breaking change for on-chain data layout\r\n- [ ] necessitate either a data wipe or data migration\r\n\r\n### Release notes\r\n\r\nA set of changes for the Move compiler\r\n- macro function support has been added for 2024.alpha. \r\n- Bug fix (and minor breaking change): Move type parameters now properly\r\nrespect the rules of restricted identifiers, similar to all other names.\r\n- To support macros, the syntax for the type signature of lambdas has\r\nchanged. This will break any existing specs (which are no longer\r\nsupported) when moving to the new edition.",
+          "timestamp": "2024-02-06T13:31:55-08:00",
+          "tree_id": "83d6a72ae56c9fb2f81d36f7de482ceee61d746e",
+          "url": "https://github.com/MystenLabs/sui/commit/5303610174e2c3e3f3e67b758815d9c829e23bd1"
+        },
+        "date": 1707255577696,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 352577,
+            "range": "± 21966",
             "unit": "ns/iter"
           }
         ]
