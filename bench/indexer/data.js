@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707243357238,
+  "lastUpdate": 1707253200610,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -119,6 +119,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 386042,
             "range": "± 36526",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "halfprice@users.noreply.github.com",
+            "name": "Zhe Wu",
+            "username": "halfprice"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d9be11951e330b33bd929e3a26d01a69e3fcf9f1",
+          "message": "Overload monitor simulation tests (#16079)\n\n## Description \r\n\r\nCreate a simulation test to test overload monitor. Particularly, it\r\ntests 5 scenarios\r\n- No overload\r\n- Slightly overload\r\n- Heavy overload\r\n- Single spike\r\n- Consistent spikes\r\n\r\nThe tests use a simple load generator and executor. Both use a\r\nAuthorityState.overload_info to keep track of requests. The overload\r\nmonitor inside the same AuthorityState can be used as an overload\r\nmonitor for the load generator.\r\n\r\nThis test discovered several improvements from the previous load\r\ngenerator. Some notable ones are:\r\n- When we are already in shedding mode, say 50%, and decide to shed 10%,\r\npreviously the new shedding percentage will be 10% but it really should\r\nbe 50% + 50% * 10% = 55%.\r\n- When txn ready rate < execution rate, it doesn't mean that the\r\noverload is over. We need to protect against future spikes by only\r\ngradually reduce shedding percentage.\r\n\r\n## Test Plan \r\n\r\nSimulation tests\r\n\r\n---\r\nIf your changes are not user-facing and do not break anything, you can\r\nskip the following section. Otherwise, please briefly describe what has\r\nchanged under the Release Notes section.\r\n\r\n### Type of Change (Check all that apply)\r\n\r\n- [ ] protocol change\r\n- [ ] user-visible impact\r\n- [ ] breaking change for a client SDKs\r\n- [ ] breaking change for FNs (FN binary must upgrade)\r\n- [ ] breaking change for validators or node operators (must upgrade\r\nbinaries)\r\n- [ ] breaking change for on-chain data layout\r\n- [ ] necessitate either a data wipe or data migration\r\n\r\n### Release notes",
+          "timestamp": "2024-02-06T12:52:32-08:00",
+          "tree_id": "5a63b92d78c48f85feb98f044f53e32d92aaaf92",
+          "url": "https://github.com/MystenLabs/sui/commit/d9be11951e330b33bd929e3a26d01a69e3fcf9f1"
+        },
+        "date": 1707253198505,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 362162,
+            "range": "± 26262",
             "unit": "ns/iter"
           }
         ]
