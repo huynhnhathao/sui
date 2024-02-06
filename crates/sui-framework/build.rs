@@ -206,11 +206,13 @@ fn build_packages_with_move_config(
             fs::write(dst_path, doc).unwrap();
         }
         for (fname, doc) in bridge_pkg.package.compiled_docs.unwrap() {
-        let mut dst_path = PathBuf::from(DOCS_DIR);
-        dst_path.push(fname);
-        fs::write(dst_path, doc).unwrap();
-    }
-    for (fname, doc) in system_pkg.package.compiled_docs.unwrap() {
+            let mut dst_path = PathBuf::from(DOCS_DIR);
+            dst_path.push(bridge_dir);
+            dst_path.push(fname);
+            fs::create_dir_all(dst_path.parent().unwrap()).unwrap();
+            fs::write(dst_path, doc).unwrap();
+        }
+        for (fname, doc) in system_pkg.package.compiled_docs.unwrap() {
             let mut dst_path = PathBuf::from(DOCS_DIR);
             dst_path.push(system_dir);
             dst_path.push(fname);

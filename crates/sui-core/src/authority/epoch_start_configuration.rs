@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use sui_types::authenticator_state::get_authenticator_state_obj_initial_shared_version;
 use sui_types::base_types::SequenceNumber;
+use sui_types::bridge::get_bridge_obj_initial_shared_version;
 use sui_types::deny_list::get_deny_list_obj_initial_shared_version;
 use sui_types::epoch_data::EpochData;
 use sui_types::error::SuiResult;
@@ -70,24 +71,6 @@ impl EpochStartConfiguration {
         }))
     }
 
-    pub fn new_v5(
-        system_state: EpochStartSystemState,
-        epoch_digest: CheckpointDigest,
-        flags: Vec<EpochFlag>,
-        authenticator_obj_initial_shared_version: Option<SequenceNumber>,
-        randomness_obj_initial_shared_version: Option<SequenceNumber>,
-        bridge_obj_initial_shared_version: Option<SequenceNumber>,
-    ) -> Self {
-        EpochStartConfigurationV5::new(
-            system_state,
-            epoch_digest,
-            flags,
-            authenticator_obj_initial_shared_version,
-            randomness_obj_initial_shared_version,
-            bridge_obj_initial_shared_version,
-        }))
-    }
-
     pub fn epoch_data(&self) -> EpochData {
         EpochData::new(
             self.epoch_start_state().epoch(),
@@ -146,16 +129,6 @@ pub struct EpochStartConfigurationV5 {
     authenticator_obj_initial_shared_version: Option<SequenceNumber>,
     randomness_obj_initial_shared_version: Option<SequenceNumber>,
     coin_deny_list_obj_initial_shared_version: Option<SequenceNumber>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-pub struct EpochStartConfigurationV5 {
-    system_state: EpochStartSystemState,
-    epoch_digest: CheckpointDigest,
-    flags: Vec<EpochFlag>,
-    /// Do the state objects exist at the beginning of the epoch?
-    authenticator_obj_initial_shared_version: Option<SequenceNumber>,
-    randomness_obj_initial_shared_version: Option<SequenceNumber>,
     bridge_obj_initial_shared_version: Option<SequenceNumber>,
 }
 
