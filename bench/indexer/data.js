@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707243207733,
+  "lastUpdate": 1707243357238,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -89,6 +89,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 365719,
             "range": "± 30795",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "51927076+phoenix-o@users.noreply.github.com",
+            "name": "phoenix",
+            "username": "phoenix-o"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f54311ed5ae8d7dccd4f0ea7ab667ad8ea03d724",
+          "message": "[data ingestion] archival worker (#16039)\n\nincludes a slight change to the data ingestion interface to support the\r\nuse case. Now tasks can skip progress updates in the meta store,\r\nallowing the accumulation of state with multiple checkpoints before\r\nsaving and ensuring correct behavior during random crash/restart.\r\nNote: this workload is expected to be run with concurrency=1 only",
+          "timestamp": "2024-02-06T13:08:07-05:00",
+          "tree_id": "9f60654e652e02f1e36b28c27ff135e4f5cbe86b",
+          "url": "https://github.com/MystenLabs/sui/commit/f54311ed5ae8d7dccd4f0ea7ab667ad8ea03d724"
+        },
+        "date": 1707243352859,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 386042,
+            "range": "± 36526",
             "unit": "ns/iter"
           }
         ]
