@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707255580539,
+  "lastUpdate": 1707259658795,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -209,6 +209,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 352577,
             "range": "± 21966",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "103447440+mystenmark@users.noreply.github.com",
+            "name": "Mark Logan",
+            "username": "mystenmark"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "eeb2f07722fd1d42f9e517d75fb33e0f61b8e3cd",
+          "message": "Hide all access to AuthorityStore behind the execution cache traits (#16089)\n\nAfter this change there are essentially no direct uses of the db.\r\n\r\nThere are a few exceptions, which are for things that are clearly very\r\ndb-specific, for instance pruning.",
+          "timestamp": "2024-02-06T22:40:10Z",
+          "tree_id": "f8ae1ac2a1b3b020b243bcec6d238ceadb808185",
+          "url": "https://github.com/MystenLabs/sui/commit/eeb2f07722fd1d42f9e517d75fb33e0f61b8e3cd"
+        },
+        "date": 1707259656362,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 375938,
+            "range": "± 31709",
             "unit": "ns/iter"
           }
         ]
