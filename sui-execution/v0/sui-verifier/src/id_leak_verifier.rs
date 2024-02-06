@@ -39,8 +39,8 @@ use sui_types::{
 
 #[cfg(msim)]
 use sui_types::{
-    authenticator_state::AUTHENTICATOR_STATE_MODULE_NAME, coin::COIN_MODULE_NAME,
-    randomness_state::RANDOMNESS_MODULE_NAME, bridge::BRIDGE_MODULE_NAME, BRIDGE_ADDRESS,
+    authenticator_state::AUTHENTICATOR_STATE_MODULE_NAME, bridge::BRIDGE_MODULE_NAME,
+    coin::COIN_MODULE_NAME, randomness_state::RANDOMNESS_MODULE_NAME, BRIDGE_ADDRESS,
 };
 
 use crate::{
