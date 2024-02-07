@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707311151122,
+  "lastUpdate": 1707332774426,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -359,6 +359,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 353757,
             "range": "± 11915",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "2895723+tzakian@users.noreply.github.com",
+            "name": "Tim Zakian",
+            "username": "tzakian"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8832eadef61377f0e4095526611c8831b8f6c513",
+          "message": "[move-debugger] Reflect updates into older execution versions (#16041)\n\n## Description \r\n\r\nReflects recent changes to the Move debugger into other execution\r\nversions.\r\n\r\n## Test Plan \r\n\r\nTested it locally",
+          "timestamp": "2024-02-07T10:58:43-08:00",
+          "tree_id": "0c86b3bc487e3dfca16bb19e43b837e19247b97a",
+          "url": "https://github.com/MystenLabs/sui/commit/8832eadef61377f0e4095526611c8831b8f6c513"
+        },
+        "date": 1707332772004,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 365835,
+            "range": "± 22491",
             "unit": "ns/iter"
           }
         ]
