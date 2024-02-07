@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707259658795,
+  "lastUpdate": 1707267663859,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -239,6 +239,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 375938,
             "range": "± 31709",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "103447440+mystenmark@users.noreply.github.com",
+            "name": "Mark Logan",
+            "username": "mystenmark"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ae35d6a6fd814035262d98c71a5ce7ec4a984658",
+          "message": "Rename in_mem_execution_cache -> execution_cache and split cache implementations into a new module (#16109)",
+          "timestamp": "2024-02-06T16:53:32-08:00",
+          "tree_id": "9687a5b52ad71dc5cdafcc808c0137e3f877d77c",
+          "url": "https://github.com/MystenLabs/sui/commit/ae35d6a6fd814035262d98c71a5ce7ec4a984658"
+        },
+        "date": 1707267661691,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 368523,
+            "range": "± 32093",
             "unit": "ns/iter"
           }
         ]
