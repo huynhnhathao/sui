@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707335647416,
+  "lastUpdate": 1707340961267,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -449,6 +449,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 366619,
             "range": "± 31448",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "8418040+longbowlu@users.noreply.github.com",
+            "name": "Lu Zhang",
+            "username": "longbowlu"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "26417d376a242d4c8e7052adab05c1089289bd1a",
+          "message": "[bridge 34/n] add AssetPriceUpdate and LimitUpdate action (#16075)\n\n## Description \r\n\r\nas title\r\n\r\n## Test Plan \r\n\r\nunit tests\r\n\r\n---\r\nIf your changes are not user-facing and do not break anything, you can\r\nskip the following section. Otherwise, please briefly describe what has\r\nchanged under the Release Notes section.\r\n\r\n### Type of Change (Check all that apply)\r\n\r\n- [ ] protocol change\r\n- [ ] user-visible impact\r\n- [ ] breaking change for a client SDKs\r\n- [ ] breaking change for FNs (FN binary must upgrade)\r\n- [ ] breaking change for validators or node operators (must upgrade\r\nbinaries)\r\n- [ ] breaking change for on-chain data layout\r\n- [ ] necessitate either a data wipe or data migration\r\n\r\n### Release notes",
+          "timestamp": "2024-02-07T21:15:35Z",
+          "tree_id": "9ffabd043a5e0e4d0d329f9dcc77ddd020d38bbc",
+          "url": "https://github.com/MystenLabs/sui/commit/26417d376a242d4c8e7052adab05c1089289bd1a"
+        },
+        "date": 1707340958688,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 352025,
+            "range": "± 23313",
             "unit": "ns/iter"
           }
         ]
