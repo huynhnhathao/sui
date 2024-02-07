@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707340961267,
+  "lastUpdate": 1707346317054,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -479,6 +479,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 352025,
             "range": "± 23313",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "2895723+tzakian@users.noreply.github.com",
+            "name": "Tim Zakian",
+            "username": "tzakian"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bb9d0f4e478aab655031f8a11251138220bc2d49",
+          "message": "Remove next-vm execution branch (#16135)\n\n## Description \r\n\r\nRemove the next-vm execution branch as it was just causing pain without\r\nany benefit.\r\n\r\n## Test Plan \r\n\r\nNot used, so free to delete.",
+          "timestamp": "2024-02-07T14:43:19-08:00",
+          "tree_id": "ce65ac00cf66e861025ba9aa06a4d1a171d4a401",
+          "url": "https://github.com/MystenLabs/sui/commit/bb9d0f4e478aab655031f8a11251138220bc2d49"
+        },
+        "date": 1707346315127,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 336117,
+            "range": "± 25654",
             "unit": "ns/iter"
           }
         ]
