@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707332774426,
+  "lastUpdate": 1707334206847,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -389,6 +389,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 365835,
             "range": "± 22491",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "97870774+arun-koshy@users.noreply.github.com",
+            "name": "Arun Koshy",
+            "username": "arun-koshy"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2801352723c542b70f2e1c336841097dd04fe84f",
+          "message": "[consensus] Add linearizer (#15911)\n\nThe module used to convert a list of committed leaders into the output\r\nof consensus which is an ordered list of CommittedSubDags",
+          "timestamp": "2024-02-07T11:22:30-08:00",
+          "tree_id": "b2124222a36445b1e251bc4342e0dac8428e1ec7",
+          "url": "https://github.com/MystenLabs/sui/commit/2801352723c542b70f2e1c336841097dd04fe84f"
+        },
+        "date": 1707334204727,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 339876,
+            "range": "± 30772",
             "unit": "ns/iter"
           }
         ]
