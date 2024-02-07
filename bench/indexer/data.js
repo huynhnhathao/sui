@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707346317054,
+  "lastUpdate": 1707346427830,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -509,6 +509,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 336117,
             "range": "± 25654",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "8418040+longbowlu@users.noreply.github.com",
+            "name": "Lu Zhang",
+            "username": "longbowlu"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "435869aac512032c7c82ad908952f2a64d0d6195",
+          "message": "[bridge 35/n] update function family get_action_onchain_status (#16074)\n\n## Description \r\n\r\n`source_chain_id` is a bit confusing concept. This PR de-ambiguates it\r\nand updates some functions to only handle token bridge actions.\r\n\r\n## Test Plan \r\n\r\nCI\r\n\r\n---\r\nIf your changes are not user-facing and do not break anything, you can\r\nskip the following section. Otherwise, please briefly describe what has\r\nchanged under the Release Notes section.\r\n\r\n### Type of Change (Check all that apply)\r\n\r\n- [ ] protocol change\r\n- [ ] user-visible impact\r\n- [ ] breaking change for a client SDKs\r\n- [ ] breaking change for FNs (FN binary must upgrade)\r\n- [ ] breaking change for validators or node operators (must upgrade\r\nbinaries)\r\n- [ ] breaking change for on-chain data layout\r\n- [ ] necessitate either a data wipe or data migration\r\n\r\n### Release notes",
+          "timestamp": "2024-02-07T14:44:10-08:00",
+          "tree_id": "caf52c90eabb18f28172d9ecdbced72e436aca9e",
+          "url": "https://github.com/MystenLabs/sui/commit/435869aac512032c7c82ad908952f2a64d0d6195"
+        },
+        "date": 1707346425406,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 338090,
+            "range": "± 18887",
             "unit": "ns/iter"
           }
         ]
