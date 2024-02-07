@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707270427949,
+  "lastUpdate": 1707288330328,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -299,6 +299,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 351212,
             "range": "± 16326",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "103447440+mystenmark@users.noreply.github.com",
+            "name": "Mark Logan",
+            "username": "mystenmark"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1d70f050c1b59f79c932ad5278ad47a2b3084a79",
+          "message": "Thou shalt not convert Err => None (#16121)\n\nThe only possible source of error here is a serialization failure of the\r\nkey, so this almost certainly could not have caused a problem. Still,\r\ngood to fix.",
+          "timestamp": "2024-02-07T06:38:18Z",
+          "tree_id": "b14b7ba8a3d20e572b875550d63a1c5788f5fd54",
+          "url": "https://github.com/MystenLabs/sui/commit/1d70f050c1b59f79c932ad5278ad47a2b3084a79"
+        },
+        "date": 1707288328518,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 337864,
+            "range": "± 25841",
             "unit": "ns/iter"
           }
         ]
