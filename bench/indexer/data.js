@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707334206847,
+  "lastUpdate": 1707335647416,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -419,6 +419,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 339876,
             "range": "± 30772",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "51927076+phoenix-o@users.noreply.github.com",
+            "name": "phoenix",
+            "username": "phoenix-o"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3474723130715f7c956a704f990e0b667d22ad5e",
+          "message": "[data ingestion] fix archival watermark (#16131)\n\nwith the current setup once `save_progress` returns true progress\r\nwatermark will be saved, but because we don't include currently\r\nprocessed checkpoint in the result when we cut, it will result in\r\nwatermark being off by 1. This fixes it, but resulting files might be\r\nslightly over the limit",
+          "timestamp": "2024-02-07T14:46:41-05:00",
+          "tree_id": "0b2a87a25978be3189d324237597c6e6052001eb",
+          "url": "https://github.com/MystenLabs/sui/commit/3474723130715f7c956a704f990e0b667d22ad5e"
+        },
+        "date": 1707335645476,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 366619,
+            "range": "± 31448",
             "unit": "ns/iter"
           }
         ]
