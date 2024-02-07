@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707346866458,
+  "lastUpdate": 1707347838547,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -569,6 +569,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 347126,
             "range": "± 19034",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "8418040+longbowlu@users.noreply.github.com",
+            "name": "Lu Zhang",
+            "username": "longbowlu"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2824495daedadb3375d03e61149c5eaf6f7aba3d",
+          "message": "[bridge 36/n] add EvmContractUpgradeAction (#16090)\n\n## Description \r\n\r\nas title\r\n\r\n## Test Plan \r\n\r\nunit tests\r\n\r\n---\r\nIf your changes are not user-facing and do not break anything, you can\r\nskip the following section. Otherwise, please briefly describe what has\r\nchanged under the Release Notes section.\r\n\r\n### Type of Change (Check all that apply)\r\n\r\n- [ ] protocol change\r\n- [ ] user-visible impact\r\n- [ ] breaking change for a client SDKs\r\n- [ ] breaking change for FNs (FN binary must upgrade)\r\n- [ ] breaking change for validators or node operators (must upgrade\r\nbinaries)\r\n- [ ] breaking change for on-chain data layout\r\n- [ ] necessitate either a data wipe or data migration\r\n\r\n### Release notes",
+          "timestamp": "2024-02-07T23:07:46Z",
+          "tree_id": "3d79d4b70cb58524108f63baab3dd30e08648178",
+          "url": "https://github.com/MystenLabs/sui/commit/2824495daedadb3375d03e61149c5eaf6f7aba3d"
+        },
+        "date": 1707347836470,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 366415,
+            "range": "± 28948",
             "unit": "ns/iter"
           }
         ]
