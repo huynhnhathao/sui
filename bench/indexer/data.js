@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707288330328,
+  "lastUpdate": 1707311151122,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -329,6 +329,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 337864,
             "range": "± 25841",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "manos@mystenlabs.com",
+            "name": "Manolis Liolios",
+            "username": "manolisliolios"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8ce29fe3fd12834a07ff024f01350bbc7a110a7c",
+          "message": "[NameService] Subdomain support (#15576)\n\n## Description \r\n\r\nIndexerV2 & GraphQL logic will be carried over on the next PRs.\r\n\r\n- Adds checks for expiration on SLD names\r\n- Adds subdomain lookup & expiration checks (for both node/leaf\r\nsubdomains)\r\n- Changes error structure for easier support between the 3 crates that\r\nuse it\r\n\r\n## Test Plan \r\n\r\nAdded some unit tests and did some localnet testing for the resolution\r\naspect.\r\nNot sure if there's a better way to test this (need advise!)\r\nWill add some extra unit tests once we're good with the logic.\r\n\r\n---\r\nIf your changes are not user-facing and not a breaking change, you can\r\nskip the following section. Otherwise, please indicate what changed, and\r\nthen add to the Release Notes section as highlighted during the release\r\nprocess.\r\n\r\n### Type of Change (Check all that apply)\r\n\r\n- [ ] protocol change\r\n- [ ] user-visible impact\r\n- [ ] breaking change for a client SDKs\r\n- [ ] breaking change for FNs (FN binary must upgrade)\r\n- [ ] breaking change for validators or node operators (must upgrade\r\nbinaries)\r\n- [ ] breaking change for on-chain data layout\r\n- [ ] necessitate either a data wipe or data migration\r\n\r\n### Release notes",
+          "timestamp": "2024-02-07T14:55:29+02:00",
+          "tree_id": "0bf1a3175af0cd962ba6b3e59f74f556dbb3b8c8",
+          "url": "https://github.com/MystenLabs/sui/commit/8ce29fe3fd12834a07ff024f01350bbc7a110a7c"
+        },
+        "date": 1707311148611,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 353757,
+            "range": "± 11915",
             "unit": "ns/iter"
           }
         ]
