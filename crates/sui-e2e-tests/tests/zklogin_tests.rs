@@ -111,7 +111,8 @@ async fn zklogin_end_to_end_test_with_auth_state_creation() {
 async fn run_zklogin_end_to_end_test(mut test_cluster: TestCluster) {
     // wait for JWKs to be fetched and sequenced.
     test_cluster.wait_for_authenticator_state_update().await;
-    let test_vectors = load_test_vectors();
+    let test_vectors =
+        load_test_vectors("crates/sui-types/src/unit_tests/zklogin_test_vectors.json");
     for (kp, pk_zklogin, inputs) in test_vectors {
         let zklogin_addr = (&pk_zklogin).into();
         let (sender, gas) = test_cluster

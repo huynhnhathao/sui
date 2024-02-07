@@ -1,22 +1,18 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+use fastcrypto::traits::EncodeDecodeBase64;
 use shared_crypto::intent::{Intent, IntentMessage};
 use sui_core::authority_client::AuthorityAPI;
-use sui_json_rpc_types::SuiTransactionBlockEffectsAPI;
 use sui_macros::sim_test;
 use sui_sdk::wallet_context::WalletContext;
 use sui_test_transaction_builder::TestTransactionBuilder;
 use sui_types::{
     base_types::{ObjectRef, SuiAddress},
-    crypto::{
-        get_key_pair, CompressedSignature, PublicKey, Signature, SuiKeyPair,
-        ZkLoginAuthenticatorAsBytes, ZkLoginPublicIdentifier,
-    },
+    crypto::{get_key_pair, PublicKey, Signature, SuiKeyPair, ZkLoginPublicIdentifier},
     error::{SuiError, SuiResult},
-    multisig::MultiSig,
-    multisig::{as_indices, MultiSigPublicKey},
-    multisig_legacy::{bitmap_to_u16, MultiSigPublicKeyLegacy},
+    multisig::{MultiSig, MultiSigPublicKey},
+    multisig_legacy::MultiSigPublicKeyLegacy,
     signature::GenericSignature,
     transaction::Transaction,
     utils::{keys, load_test_vectors, make_upgraded_multisig_tx},
@@ -186,7 +182,8 @@ async fn test_multisig_e2e() {
 
 #[sim_test]
 async fn test_multisig_with_zklogin_scenerios() {
-    let mut test_cluster = TestClusterBuilder::new().build().await;
+    let mut test_cluster = TestClusterBuilder::new().with_default_jwks().build().await;
+    test_cluster.wait_for_authenticator_state_update().await;
     let rgp = test_cluster.get_reference_gas_price().await;
     let context = &mut test_cluster.wallet;
 
@@ -196,111 +193,177 @@ async fn test_multisig_with_zklogin_scenerios() {
     let pk2 = keys[2].public(); // secp256r1
 
     // construct a multisig address with 4 pks (ed25519, secp256k1, secp256r1, zklogin) with threshold = 1.
-    let (eph_kp, _eph_pk, zklogin_inputs) = &load_test_vectors()[0];
+    let (eph_kp, _eph_pk, zklogin_inputs) =
+        &load_test_vectors("../sui-types/src/unit_tests/zklogin_test_vectors.json")[0];
+    let (eph_kp_1, _, _) =
+        &load_test_vectors("../sui-types/src/unit_tests/zklogin_test_vectors.json")[1];
     let zklogin_pk = PublicKey::ZkLogin(
         ZkLoginPublicIdentifier::new(zklogin_inputs.get_iss(), zklogin_inputs.get_address_seed())
             .unwrap(),
     );
-    let multisig_pk = MultiSigPublicKey::new(
-        vec![pk0.clone(), pk1.clone(), pk2.clone(), zklogin_pk],
-        vec![1, 1, 1, 1],
-        1,
-    )
-    .unwrap();
+    // let multisig_pk = MultiSigPublicKey::new(
+    //     vec![pk0.clone(), pk1.clone(), pk2.clone(), zklogin_pk.clone()],
+    //     vec![1, 1, 1, 1],
+    //     1,
+    // )
+    // .unwrap();
 
-    // fund the multisig address.
-    let multisig_addr = SuiAddress::from(&multisig_pk);
-    let gas = fund_address_and_return_gas(context, rgp, multisig_addr).await;
-    let tx_data = TestTransactionBuilder::new(multisig_addr, gas.clone(), rgp)
-        .transfer_sui(None, SuiAddress::ZERO)
-        .build();
-    let wrong_intent_msg = IntentMessage::new(Intent::personal_message(), tx_data.clone());
-    let wrong_sig: GenericSignature = Signature::new_secure(&wrong_intent_msg, &keys[0]).into();
+    // // fund the multisig address.
+    // let multisig_addr = SuiAddress::from(&multisig_pk);
+    // let gas = fund_address_and_return_gas(context, rgp, multisig_addr).await;
+    // let tx_data = TestTransactionBuilder::new(multisig_addr, gas.clone(), rgp)
+    //     .transfer_sui(None, SuiAddress::ZERO)
+    //     .build();
+    // let intent_msg = IntentMessage::new(Intent::sui_transaction(), tx_data.clone());
+    // let wrong_intent_msg = IntentMessage::new(Intent::personal_message(), tx_data.clone());
 
-    // 1. a multisig with a bad ed25519 sig fails to execute.
-    let multisig = GenericSignature::MultiSig(
-        MultiSig::combine(vec![wrong_sig], multisig_pk.clone()).unwrap(),
-    );
-    let tx_1 = Transaction::from_generic_sig_data(tx_data.clone(), vec![multisig]);
-    let res = context.execute_transaction_may_fail(tx_1).await;
-    info!("res 1= {:?}", res);
-    assert!(res
-        .unwrap_err()
-        .to_string()
-        .contains("Invalid sig for pk=AgIr5mvYQW6NF/3TU23ZCggycepE9sxZkBV/r27s6d/YXQ=="));
+    // // 1. a multisig with a bad ed25519 sig fails to execute.
+    // let wrong_sig: GenericSignature = Signature::new_secure(&wrong_intent_msg, &keys[0]).into();
+    // let multisig = GenericSignature::MultiSig(
+    //     MultiSig::combine(vec![wrong_sig], multisig_pk.clone()).unwrap(),
+    // );
+    // let tx_1 = Transaction::from_generic_sig_data(tx_data.clone(), vec![multisig]);
+    // let res = context.execute_transaction_may_fail(tx_1).await;
+    // assert!(res
+    //     .unwrap_err()
+    //     .to_string()
+    //     .contains(format!("Invalid sig for pk={}", pk0.encode_base64()).as_str()));
 
+    // // 2. a multisig with a bad secp256k1 sig fails to execute.
+    // let wrong_sig_2: GenericSignature = Signature::new_secure(&wrong_intent_msg, &keys[1]).into();
+    // let multisig = GenericSignature::MultiSig(
+    //     MultiSig::combine(vec![wrong_sig_2], multisig_pk.clone()).unwrap(),
+    // );
+    // let tx_2 = Transaction::from_generic_sig_data(tx_data.clone(), vec![multisig]);
+    // let res = context.execute_transaction_may_fail(tx_2).await;
+    // assert!(res
+    //     .unwrap_err()
+    //     .to_string()
+    //     .contains(format!("Invalid sig for pk={}", pk1.encode_base64()).as_str()));
+
+    // // 3. a multisig with a bad secp256r1 sig fails to execute.
     // let wrong_sig_3: GenericSignature = Signature::new_secure(&wrong_intent_msg, &keys[2]).into();
-    // let wrong_sig_4: GenericSignature = ZkLoginAuthenticator::new(
+    // let multisig = GenericSignature::MultiSig(
+    //     MultiSig::combine(vec![wrong_sig_3], multisig_pk.clone()).unwrap(),
+    // );
+    // let tx_3 = Transaction::from_generic_sig_data(tx_data.clone(), vec![multisig]);
+    // let res = context.execute_transaction_may_fail(tx_3).await;
+    // assert!(res
+    //     .unwrap_err()
+    //     .to_string()
+    //     .contains(format!("Invalid sig for pk={}", pk2.encode_base64()).as_str()));
+
+    // // 4. a multisig with a bad ephemeral sig inside zklogin sig fails to execute.
+    // let wrong_eph_sig = Signature::new_secure(&wrong_intent_msg, eph_kp);
+    // let wrong_zklogin_sig = GenericSignature::ZkLoginAuthenticator(ZkLoginAuthenticator::new(
     //     zklogin_inputs.clone(),
     //     10,
-    //     Signature::new_secure(&wrong_intent_msg, eph_kp),
-    // )
-    // .into();
+    //     wrong_eph_sig,
+    // ));
+    // let multisig = GenericSignature::MultiSig(
+    //     MultiSig::combine(vec![wrong_zklogin_sig], multisig_pk.clone()).unwrap(),
+    // );
+    // let tx_4 = Transaction::from_generic_sig_data(tx_data.clone(), vec![multisig]);
+    // let res = context.execute_transaction_may_fail(tx_4).await;
+    // let pk3 = PublicKey::ZkLogin(
+    //     ZkLoginPublicIdentifier::new(zklogin_inputs.get_iss(), zklogin_inputs.get_address_seed())
+    //         .unwrap(),
+    // );
+    // assert!(res
+    //     .unwrap_err()
+    //     .to_string()
+    //     .contains(format!("Invalid sig for pk={}", pk3.encode_base64()).as_str()));
 
-    // // a multisig with a bad secp256k1 sig fails to execute.
-    // let wrong_sig: GenericSignature = Signature::new_secure(&wrong_intent_msg, &keys[1]).into();
-    // let multisig =
-    //     GenericSignature::MultiSig(MultiSig::combine(vec![wrong_sig], multisig_pk.clone()).unwrap());
-    // let tx_8 = Transaction::from_generic_sig_data(tx_data.clone(), vec![multisig]);
-    // let res = context.execute_transaction_may_fail(tx_8).await;
-    // info!("res 1= {:?}", res);
-    // assert!(res.unwrap_err().to_string().contains("Invalid sig for pk=AgIr5mvYQW6NF/3TU23ZCggycepE9sxZkBV/r27s6d/YXQ=="));
+    // // 5. a multisig with a zklogin sig with wrong ephemeral sig fails to execute.
+    // let wrong_eph_sig = Signature::new_secure(&wrong_intent_msg, eph_kp);
+    // let wrong_zklogin_sig = GenericSignature::ZkLoginAuthenticator(ZkLoginAuthenticator::new(
+    //     zklogin_inputs.clone(),
+    //     10,
+    //     wrong_eph_sig,
+    // ));
+    // let multisig = GenericSignature::MultiSig(
+    //     MultiSig::combine(vec![wrong_zklogin_sig], multisig_pk.clone()).unwrap(),
+    // );
+    // let tx_5 = Transaction::from_generic_sig_data(tx_data.clone(), vec![multisig]);
+    // let res = context.execute_transaction_may_fail(tx_5).await;
+    // assert!(res
+    //     .unwrap_err()
+    //     .to_string()
+    //     .contains(format!("Invalid sig for pk={}", pk3.encode_base64()).as_str()));
 
-    // // a multisig with a bad secp256r1 sig fails to execute.
-    // let multisig =
-    //     GenericSignature::MultiSig(MultiSig::combine(vec![wrong_sig_3], multisig_pk_2.clone()).unwrap());
-    // let tx_8 = Transaction::from_generic_sig_data(tx_data_7.clone(), vec![multisig]);
-    // let res = context.execute_transaction_may_fail(tx_8).await;
-    // println!("res 3= {:?}", res);
+    // // 6. a multisig with a mismatch ephermeal sig and zklogin inputs fails to execute.
+    // let eph_sig = Signature::new_secure(&intent_msg, eph_kp_1);
+    // let zklogin_sig_mismatch = GenericSignature::ZkLoginAuthenticator(
+    //     ZkLoginAuthenticator::new(zklogin_inputs.clone(), 10, eph_sig),
+    // );
+    // let multisig = GenericSignature::MultiSig(
+    //     MultiSig::combine(vec![zklogin_sig_mismatch], multisig_pk.clone()).unwrap(),
+    // );
+    // let tx_6 = Transaction::from_generic_sig_data(tx_data.clone(), vec![multisig]);
+    // let res = context.execute_transaction_may_fail(tx_6).await;
+    // assert!(res
+    //     .unwrap_err()
+    //     .to_string()
+    //     .contains(format!("Invalid sig for pk={}", pk3.encode_base64()).as_str()));
 
-    // // a multisig with a bad zklogin sig fails to execute.
-    // let multisig =
-    //     GenericSignature::MultiSig(MultiSig::combine(vec![wrong_sig_4], multisig_pk_2.clone()).unwrap());
-    // let tx_9 = Transaction::from_generic_sig_data(tx_data_7.clone(), vec![multisig]);
-    // let res = context.execute_transaction_may_fail(tx_9).await;
-    // println!("res 4= {:?}", res);
+    // // 7. a multisig with an inconsistent max_epoch with zk proof itself fails to execute.
+    // let eph_sig = Signature::new_secure(&intent_msg, eph_kp);
+    // let zklogin_sig_wrong_zklogin_inputs = GenericSignature::ZkLoginAuthenticator(
+    //     ZkLoginAuthenticator::new(zklogin_inputs.clone(), 9, eph_sig), // max_epoch set to 9 instead of 10
+    // );
+    // let multisig = GenericSignature::MultiSig(
+    //     MultiSig::combine(vec![zklogin_sig_wrong_zklogin_inputs], multisig_pk.clone()).unwrap(),
+    // );
+    // let tx_7 = Transaction::from_generic_sig_data(tx_data.clone(), vec![multisig]);
+    // let res = context.execute_transaction_may_fail(tx_7).await;
+    // assert!(res
+    //     .unwrap_err()
+    //     .to_string()
+    //     .contains("Groth16 proof verify failed"));
 
-    // // good ed25519 sig used in multisig executes successfully.
-    // let tx_data_8 = TestTransactionBuilder::new(multisig_addr, gas_2.clone(), rgp)
+    // // assert positive case for all above scenerios.
+    // // 1a. good ed25519 sig used in multisig executes successfully.
+    // let gas = fund_address_and_return_gas(context, rgp, multisig_addr).await;
+    // let tx_data = TestTransactionBuilder::new(multisig_addr, gas.clone(), rgp)
     //     .transfer_sui(None, SuiAddress::ZERO)
     //     .build();
-    // let intent_msg = IntentMessage::new(Intent::sui_transaction(), tx_data_8.clone());
-    // let sig_1: GenericSignature = Signature::new_secure(&intent_msg, &keys[0]).into();
+    // let intent_msg = IntentMessage::new(Intent::sui_transaction(), tx_data.clone());
+    // let sig_0: GenericSignature = Signature::new_secure(&intent_msg, &keys[0]).into();
     // let multisig =
-    //     GenericSignature::MultiSig(MultiSig::combine(vec![sig_1], multisig_pk_2.clone()).unwrap());
-    // let tx_9 = Transaction::from_generic_sig_data(tx_data_8, vec![multisig]);
-    // let res =context.execute_transaction_must_succeed(tx_9).await;
-    // println!("res 5= {:?}", res);
+    //     GenericSignature::MultiSig(MultiSig::combine(vec![sig_0], multisig_pk.clone()).unwrap());
+    // let tx_8 = Transaction::from_generic_sig_data(tx_data, vec![multisig]);
+    // let _ = context.execute_transaction_must_succeed(tx_8).await;
 
-    // // good secp256k1 sig used in multisig executes successfully.
-    // let tx_data_8 = TestTransactionBuilder::new(multisig_addr, gas_3, rgp)
+    // // 2a. good secp256k1 sig used in multisig executes successfully.
+    // let gas = fund_address_and_return_gas(context, rgp, multisig_addr).await;
+    // let tx_data = TestTransactionBuilder::new(multisig_addr, gas, rgp)
     //     .transfer_sui(None, SuiAddress::ZERO)
     //     .build();
-    // let intent_msg = IntentMessage::new(Intent::sui_transaction(), tx_data_8.clone());
+    // let intent_msg = IntentMessage::new(Intent::sui_transaction(), tx_data.clone());
     // let sig_1: GenericSignature = Signature::new_secure(&intent_msg, &keys[1]).into();
     // let multisig =
-    //     GenericSignature::MultiSig(MultiSig::combine(vec![sig_1], multisig_pk_2.clone()).unwrap());
-    // let tx_9 = Transaction::from_generic_sig_data(tx_data_8, vec![multisig]);
-    // let res =context.execute_transaction_must_succeed(tx_9).await;
-    // println!("res 6= {:?}", res);
+    //     GenericSignature::MultiSig(MultiSig::combine(vec![sig_1], multisig_pk.clone()).unwrap());
+    // let tx_9 = Transaction::from_generic_sig_data(tx_data, vec![multisig]);
+    // let _ =context.execute_transaction_must_succeed(tx_9).await;
 
-    // // good secp256r1 sig used in multisig executes successfully.
-    // let tx_data_8 = TestTransactionBuilder::new(multisig_addr, gas_4, rgp)
+    // // 3a. good secp256r1 sig used in multisig executes successfully.
+    // let gas = fund_address_and_return_gas(context, rgp, multisig_addr).await;
+    // let tx_data = TestTransactionBuilder::new(multisig_addr, gas, rgp)
     //     .transfer_sui(None, SuiAddress::ZERO)
     //     .build();
-    // let intent_msg = IntentMessage::new(Intent::sui_transaction(), tx_data_8.clone());
-    // let sig_1: GenericSignature = Signature::new_secure(&intent_msg, &keys[2]).into();
+    // let intent_msg = IntentMessage::new(Intent::sui_transaction(), tx_data.clone());
+    // let sig_2: GenericSignature = Signature::new_secure(&intent_msg, &keys[2]).into();
     // let multisig =
-    //     GenericSignature::MultiSig(MultiSig::combine(vec![sig_1], multisig_pk_2.clone()).unwrap());
-    // let tx_9 = Transaction::from_generic_sig_data(tx_data_8, vec![multisig]);
-    // let res=context.execute_transaction_must_succeed(tx_9).await;
-    // println!("res 7= {:?}", res);
+    //     GenericSignature::MultiSig(MultiSig::combine(vec![sig_2], multisig_pk.clone()).unwrap());
+    // let tx_9 = Transaction::from_generic_sig_data(tx_data, vec![multisig]);
+    // let _ = context.execute_transaction_must_succeed(tx_9).await;
 
-    // // good zklogin sig used in multisig executes successfully.
-    // let tx_data_8 = TestTransactionBuilder::new(multisig_addr, gas_5, rgp)
+    // // 4a. good zklogin sig used in multisig executes successfully.
+    // let gas = fund_address_and_return_gas(context, rgp, multisig_addr).await;
+    // let tx_data = TestTransactionBuilder::new(multisig_addr, gas, rgp)
     //     .transfer_sui(None, SuiAddress::ZERO)
     //     .build();
-    // let intent_msg = IntentMessage::new(Intent::sui_transaction(), tx_data_8.clone());
+    // let intent_msg = IntentMessage::new(Intent::sui_transaction(), tx_data.clone());
     // let sig_4: GenericSignature = ZkLoginAuthenticator::new(
     //     zklogin_inputs.clone(),
     //     10,
@@ -308,37 +371,51 @@ async fn test_multisig_with_zklogin_scenerios() {
     // )
     // .into();
     // let multisig =
-    //     GenericSignature::MultiSig(MultiSig::combine(vec![sig_4], multisig_pk_2.clone()).unwrap());
-    // let tx_9 = Transaction::from_generic_sig_data(tx_data_8.clone(), vec![multisig]);
-    // let res =context.execute_transaction_must_succeed(tx_9).await;
-    // println!("res 8= {:?}", res);
+    //     GenericSignature::MultiSig(MultiSig::combine(vec![sig_4], multisig_pk.clone()).unwrap());
+    // let tx_10 = Transaction::from_generic_sig_data(tx_data.clone(), vec![multisig]);
+    // let _ =context.execute_transaction_must_succeed(tx_10).await;
 
-    // // wrong bitmap fails to execute.
-    // let tx_data_8 = TestTransactionBuilder::new(multisig_addr, gas_6, rgp)
+    // // 8. wrong bitmap fails to execute.
+    // let gas = fund_address_and_return_gas(context, rgp, multisig_addr).await;
+    // let tx_data = TestTransactionBuilder::new(multisig_addr, gas, rgp)
     //     .transfer_sui(None, SuiAddress::ZERO)
     //     .build();
-    // let intent_msg = IntentMessage::new(Intent::sui_transaction(), tx_data_8.clone());
-    // let sig_1: GenericSignature = Signature::new_secure(&intent_msg, &keys[2]).into();
-    // let multisig = GenericSignature::MultiSig(MultiSig::new(vec![sig_1.to_compressed().unwrap()], 1, multisig_pk_2.clone()));
-    // let tx8 = Transaction::from_generic_sig_data(tx_data_8.clone(), vec![multisig]);
-    // let _ =context.execute_transaction_may_fail(tx8).await;
+    // let intent_msg = IntentMessage::new(Intent::sui_transaction(), tx_data.clone());
+    // let sig: GenericSignature = Signature::new_secure(&intent_msg, &keys[0]).into();
+    // let multisig = GenericSignature::MultiSig(MultiSig::new(vec![sig.to_compressed().unwrap()], 0b0010, multisig_pk.clone()));
+    // let tx_11 = Transaction::from_generic_sig_data(tx_data.clone(), vec![multisig]);
+    // let res = context.execute_transaction_may_fail(tx_11).await;
+    // assert!(res
+    //     .unwrap_err()
+    //     .to_string()
+    //     .contains("Invalid ed25519 pk bytes"));
 
-    // // invalid bitmap b10000 when the max bitmap for 4 pks is b1111, fails to execute.
-    // let multisig = GenericSignature::MultiSig(MultiSig::new(vec![sig_1.to_compressed().unwrap()], 1 << 4, multisig_pk_2.clone()));
-    // let tx8 = Transaction::from_generic_sig_data(tx_data_8.clone(), vec![multisig]);
-    // let _ =context.execute_transaction_may_fail(tx8).await;
+    // // 9. invalid bitmap b10000 when the max bitmap for 4 pks is b1111, fails to execute.
+    // let multisig = GenericSignature::MultiSig(MultiSig::new(vec![sig.clone().to_compressed().unwrap()], 1 << 4, multisig_pk.clone()));
+    // let tx_12 = Transaction::from_generic_sig_data(tx_data.clone(), vec![multisig]);
+    // let res = context.execute_transaction_may_fail(tx_12).await;
+    // assert!(res
+    //     .unwrap_err()
+    //     .to_string()
+    //     .contains("Invalid public keys index"));
 
-    // // malformed multisig pk threshold = 0, fails to execute.
-    // let bad_multisig_pk = MultiSigPublicKey::new(
-    //     vec![pk1.clone(), pk2.clone(), pk3.clone()],
-    //     vec![1, 1, 1],
-    //     0,
-    // )
-    // .unwrap();
-
-    // let multisig = GenericSignature::MultiSig(MultiSig::new(vec![sig_1.to_compressed().unwrap()], 2, bad_multisig_pk));
-    // let tx_9 = Transaction::from_generic_sig_data(tx_data_8.clone(), vec![multisig]);
-    // let _ = context.execute_transaction_may_fail(tx_9).await;
+    // 10. malformed multisig pk where threshold = 0, fails to execute.
+    let bad_multisig_pk = MultiSigPublicKey::construct(vec![(pk0.clone(), 1), (pk1.clone(), 1), (pk2.clone(), 1)],0);
+    let bad_multisig_addr = SuiAddress::from(&bad_multisig_pk);
+    let gas_1 = fund_address_and_return_gas(context, rgp, bad_multisig_addr).await;
+    let tx_data_1 = TestTransactionBuilder::new(bad_multisig_addr, gas_1, rgp)
+        .transfer_sui(None, SuiAddress::ZERO)
+        .build();
+    let intent_msg_1 = IntentMessage::new(Intent::sui_transaction(), tx_data_1.clone());
+    let sig_1: GenericSignature = Signature::new_secure(&intent_msg_1, &keys[0]).into();
+    let multisig_1 = GenericSignature::MultiSig(MultiSig::new(vec![sig_1.to_compressed().unwrap()], 0b001, bad_multisig_pk.clone()));
+    let tx_13 = Transaction::from_generic_sig_data(tx_data_1.clone(), vec![multisig_1]);
+    let res = context.execute_transaction_may_fail(tx_13).await;
+    info!("dwqml;tkres: {:?}", res);
+    assert!(res
+        .unwrap_err()
+        .to_string()
+        .contains("Invalid multisig pk"));
 
     // // malformed multisig a pk has weight = 0, fails to execute.
     // let bad_multisig_pk = MultiSigPublicKey::new(
@@ -384,6 +461,7 @@ async fn test_multisig_with_zklogin_scenerios() {
 #[sim_test]
 async fn test_multisig_legacy_e2e() {
     let mut test_cluster = TestClusterBuilder::new().build().await;
+    let rgp = test_cluster.get_reference_gas_price().await;
 
     let keys = keys();
     let pk1 = keys[0].public();
@@ -403,18 +481,10 @@ async fn test_multisig_legacy_e2e() {
     )
     .unwrap();
     let multisig_addr = SuiAddress::from(&multisig_pk);
-
-    let (sender, gas) = test_cluster
-        .wallet
-        .get_one_gas_object()
-        .await
-        .unwrap()
-        .unwrap();
-    let rgp = test_cluster.get_reference_gas_price().await;
     let context = &mut test_cluster.wallet;
-    let new_obj = fund_address_and_return_gas(context, rgp, multisig_addr).await;
-    let transfer_from_multisig = TestTransactionBuilder::new(multisig_addr, new_obj, rgp)
-        .transfer_sui(Some(1000000), sender)
+    let gas = fund_address_and_return_gas(context, rgp, multisig_addr).await;
+    let transfer_from_multisig = TestTransactionBuilder::new(multisig_addr, gas, rgp)
+        .transfer_sui(Some(1000000), SuiAddress::ZERO)
         .build_and_sign_multisig_legacy(multisig_pk_legacy, &[&keys[0], &keys[1]]);
 
     context

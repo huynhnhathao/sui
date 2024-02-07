@@ -105,6 +105,7 @@ impl AuthenticatorTrait for MultiSig {
     where
         T: Serialize,
     {
+        info!("verifying multisig={:?}", self.multisig_pk);
         self.multisig_pk
             .validate()
             .map_err(|_| SuiError::InvalidSignature {

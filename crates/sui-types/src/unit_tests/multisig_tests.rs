@@ -5,8 +5,8 @@ use super::{MultiSigPublicKey, ThresholdUnit, WeightUnit};
 use crate::{
     base_types::SuiAddress,
     crypto::{
-        get_key_pair, get_key_pair_from_rng, CompressedSignature, DefaultHash, Ed25519SuiSignature,
-        PublicKey, Signature, SuiKeyPair, SuiSignatureInner, ZkLoginAuthenticatorAsBytes,
+        get_key_pair, get_key_pair_from_rng, CompressedSignature, Ed25519SuiSignature, PublicKey,
+        Signature, SuiKeyPair, SuiSignatureInner, ZkLoginAuthenticatorAsBytes,
         ZkLoginPublicIdentifier,
     },
     multisig::{as_indices, MultiSig, MAX_SIGNER_IN_MULTISIG},
@@ -916,7 +916,7 @@ fn multisig_zklogin_scenarios() {
     let skp: SuiKeyPair = SuiKeyPair::Ed25519(kp);
     let pk1 = skp.public();
 
-    let test_vectors = load_test_vectors();
+    let test_vectors = load_test_vectors("./src/unit_tests/zklogin_test_vectors.json");
     let inputs = test_vectors[0].2.clone();
 
     // pk consistent with the one in make_zklogin_tx
@@ -1116,7 +1116,7 @@ fn zklogin_in_multisig_works_with_both_addresses() {
     let multisig_pk = MultiSigPublicKey::new(vec![pk1, pk2.clone()], vec![1; 2], 1).unwrap();
     let multisig_address = SuiAddress::from(&multisig_pk);
 
-    let (kp, _pk, input) = &load_test_vectors()[0];
+    let (kp, _pk, input) = &load_test_vectors("./src/unit_tests/zklogin_test_vectors.json")[0];
     let intent_msg = &IntentMessage::new(
         Intent::sui_transaction(),
         make_transaction_data(multisig_address),
