@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::crypto::BridgeAuthorityKeyPair;
+use crate::error::BridgeError;
 use crate::eth_client::EthClient;
 use crate::sui_client::SuiClient;
+use crate::types::BridgeAction;
 use anyhow::anyhow;
 use ethers::types::Address as EthAddress;
 use fastcrypto::traits::EncodeDecodeBase64;
@@ -67,6 +69,8 @@ pub struct BridgeNodeConfig {
     /// Note 2: the EventID needs to be valid, namely it must exist and matches the filter.
     /// Otherwise, it will miss one event because of fullnode Event query semantics.
     pub sui_bridge_modules_last_processed_event_id_override: Option<BTreeMap<String, EventID>>,
+    /// A list of approved governance actions. Action in this list will be signed when requested by client.
+    pub approved_governance_actions: Vec<BridgeAction>,
 }
 
 impl Config for BridgeNodeConfig {}
@@ -97,12 +101,24 @@ impl BridgeNodeConfig {
             .await?,
         );
 
+        // Validate approved actions that must be governace actions
+        for action in &self.approved_governance_actions {
+            if !action.is_governace_action() {
+                return Err(anyhow::anyhow!(format!(
+                    "{:?}",
+                    BridgeError::ApprovedActionIsNotGovernanceAction(action.clone())
+                )));
+            }
+        }
+        let approved_governance_actions = self.approved_governance_actions.clone();
+
         let bridge_server_config = BridgeServerConfig {
             key: bridge_authority_key,
             metrics_port: self.metrics_port,
             server_listen_port: self.server_listen_port,
             sui_client: sui_client.clone(),
             eth_client: eth_client.clone(),
+            approved_governance_actions,
         };
 
         if !self.run_client {
@@ -218,6 +234,8 @@ pub struct BridgeServerConfig {
     pub metrics_port: u16,
     pub sui_client: Arc<SuiClient<SuiSdkClient>>,
     pub eth_client: Arc<EthClient<ethers::providers::Http>>,
+    /// A list of approved governance actions. Action in this list will be signed when requested by client.
+    pub approved_governance_actions: Vec<BridgeAction>,
 }
 
 // TODO: add gas balance alert threshold
