@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707346427830,
+  "lastUpdate": 1707346866458,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -539,6 +539,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 338090,
             "range": "± 18887",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "cameronswords@gmail.com",
+            "name": "Cam Swords",
+            "username": "cgswords"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d5e96cd1f0ceaf7dd682b721fa95e7358c23b3ce",
+          "message": "[move] Make most ICEs diagnostics (#16124)\n\n## Description \r\n\r\nThe compiler has a number of panics when things have gone wrong. This\r\ntries to remediate a large number of them to return some sort of error\r\nto allow compilation to continue, plus report it as a bug.\r\n\r\nIt's unclear if this will make development easier, but I think it is\r\noverall a situation we should move toward to helps when users stumble\r\ninto these. If there are any specific panics we'd like to reinstate,\r\nplease call them out.\r\n\r\n## Test Plan \r\n\r\nThe test suite behavior should not change. \r\n\r\n---\r\nIf your changes are not user-facing and do not break anything, you can\r\nskip the following section. Otherwise, please briefly describe what has\r\nchanged under the Release Notes section.\r\n\r\n### Type of Change (Check all that apply)\r\n\r\n- [ ] protocol change\r\n- [ ] user-visible impact\r\n- [ ] breaking change for a client SDKs\r\n- [ ] breaking change for FNs (FN binary must upgrade)\r\n- [ ] breaking change for validators or node operators (must upgrade\r\nbinaries)\r\n- [ ] breaking change for on-chain data layout\r\n- [ ] necessitate either a data wipe or data migration\r\n\r\n### Release notes",
+          "timestamp": "2024-02-07T14:49:21-08:00",
+          "tree_id": "5d0c6b3d825ce341e5d71a98badd921aee1c52b2",
+          "url": "https://github.com/MystenLabs/sui/commit/d5e96cd1f0ceaf7dd682b721fa95e7358c23b3ce"
+        },
+        "date": 1707346864143,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 347126,
+            "range": "± 19034",
             "unit": "ns/iter"
           }
         ]
