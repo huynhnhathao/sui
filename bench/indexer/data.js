@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707351207132,
+  "lastUpdate": 1707355934342,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -629,6 +629,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 347608,
             "range": "± 15885",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "127570466+wlmyng@users.noreply.github.com",
+            "name": "wlmyng",
+            "username": "wlmyng"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6b54be8e8aa4546981848dfaac4dadcd478c8580",
+          "message": "[gql] add owner_type to balance query (#16137)",
+          "timestamp": "2024-02-07T15:24:23-10:00",
+          "tree_id": "e76467789461e96fe3a515d1cbb8b3b00a83be58",
+          "url": "https://github.com/MystenLabs/sui/commit/6b54be8e8aa4546981848dfaac4dadcd478c8580"
+        },
+        "date": 1707355931729,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 343628,
+            "range": "± 39351",
             "unit": "ns/iter"
           }
         ]
