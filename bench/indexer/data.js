@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1707347838547,
+  "lastUpdate": 1707351207132,
   "repoUrl": "https://github.com/MystenLabs/sui",
   "entries": {
     "Benchmark": [
@@ -599,6 +599,36 @@ window.BENCHMARK_DATA = {
             "name": "get_checkpoint",
             "value": 366415,
             "range": "± 28948",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "adam@mystenlabs.com",
+            "name": "Adam Welc",
+            "username": "awelc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4a2a63c0a0122433e70a0a086aa8a0b95f2a5bbe",
+          "message": "[move-ide] Refactoring to reduce memory footprint and prepare for new features (#16116)\n\n## Description \r\n\r\nThis is mainly a refactoring with a small change to how constants are\r\ndisplayed (to include their defining module).\r\n\r\nThe refactoring started while attempting to implement a new feature but\r\nit was deemed a better idea to create a separate PR for it. In addition\r\nto enabling a new feature, it also reduces memory consumption by storing\r\nadditional information for definitions on the side instead of inlining\r\nthem in the `UseDef` structure - we moved `IdentOnHover` (now called\r\n`DefInfo` as it will be used for other things as well) to a separate\r\nmap.\r\n\r\n\r\n## Test Plan \r\n\r\nAll existing tests (after new constant display adjustment) pass.",
+          "timestamp": "2024-02-07T16:06:15-08:00",
+          "tree_id": "9d09c71d8b9a079e40d6ac58e1b6c0adfc3304ee",
+          "url": "https://github.com/MystenLabs/sui/commit/4a2a63c0a0122433e70a0a086aa8a0b95f2a5bbe"
+        },
+        "date": 1707351204049,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "get_checkpoint",
+            "value": 347608,
+            "range": "± 15885",
             "unit": "ns/iter"
           }
         ]
